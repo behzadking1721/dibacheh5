@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Book, ReaderTheme, Highlight, Note } from '../types';
-import { SimilarBooks } from './SimilarBooks';
 import {
   X,
   ChevronRight,
@@ -222,9 +221,10 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
   );
 
   const themeClasses = {
-    light: 'bg-white text-neutral-850 border-neutral-200',
-    sepia: 'bg-[#fcf7ed] text-[#433422] border-[#e8ddca]',
+    light: 'bg-white text-neutral-900 border-neutral-200',
+    sepia: 'bg-[#f7eed8] text-[#3d2b1f] border-[#e2d1b7]',
     dark: 'bg-[#18181b] text-neutral-200 border-neutral-800',
+    amoled: 'bg-[#000000] text-[#dedee5] border-[#222222]',
   }[readerTheme];
 
   const fontSizes = {
@@ -234,7 +234,11 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
   }[fontSize];
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-xs animate-in fade-in duration-200 select-text">
+    <div
+      className={`fixed inset-0 z-50 flex flex-col ${
+        readerTheme === 'amoled' ? 'bg-black' : 'bg-black/80'
+      } backdrop-blur-xs animate-in fade-in duration-200 select-text`}
+    >
       {/* Selection Floating Toolbar for Highlighting */}
       {selectionPosition && selectedText && (
         <div
@@ -359,6 +363,43 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                     فونت: {fontSize === 'sm' ? 'کوچک' : fontSize === 'base' ? 'عادی' : 'بزرگ'}
                   </button>
                 </div>
+
+                {/* Quick theme toggle in Zen mode */}
+                <div className="flex items-center gap-1 border-r border-white/20 pr-1.5 mr-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const themes: ReaderTheme[] = ['light', 'sepia', 'dark', 'amoled'];
+                      const next = themes[(themes.indexOf(readerTheme) + 1) % themes.length];
+                      setReaderTheme(next);
+                    }}
+                    className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[10px] font-bold flex items-center gap-1 transition-colors"
+                    title="تغییر تم رنگی ریدر (سفید، سپیا، تیره، مشکی مطلق)"
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full border border-white/40 inline-block shrink-0"
+                      style={{
+                        backgroundColor:
+                          readerTheme === 'light'
+                            ? '#ffffff'
+                            : readerTheme === 'sepia'
+                            ? '#ebd9bf'
+                            : readerTheme === 'dark'
+                            ? '#27272a'
+                            : '#000000',
+                      }}
+                    />
+                    <span>
+                      {readerTheme === 'light'
+                        ? 'سفید'
+                        : readerTheme === 'sepia'
+                        ? 'سپیا (قهوه‌ای)'
+                        : readerTheme === 'dark'
+                        ? 'تیره'
+                        : 'مشکی مطلق'}
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
           </>
@@ -366,14 +407,14 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
 
         {/* Top Header (Hidden in Zen mode) */}
         {!isZenMode && (
-          <header className="px-4 py-3 border-b flex items-center justify-between gap-2 shrink-0 border-inherit bg-inherit/90 backdrop-blur-xs relative z-20">
+          <header className="px-3 sm:px-4 py-2.5 border-b flex items-center justify-between gap-2 shrink-0 border-inherit bg-inherit/90 backdrop-blur-xs relative z-20">
             <button
               id="close-reader-btn"
               onClick={() => onClose(progress)}
               className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
             >
               <X className="w-4 h-4" />
-              <span>بستن ریدر</span>
+              <span className="hidden sm:inline">بستن ریدر</span>
             </button>
 
             <div className="text-center flex-1 min-w-0 px-2">
@@ -381,23 +422,23 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
               <p className="text-[11px] opacity-70 truncate">{book.author}</p>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
               {/* Deep Reading / Zen Mode Toggle Button */}
               <button
                 id="toggle-zen-mode-btn"
                 type="button"
                 onClick={toggleZenMode}
-                className="p-1.5 rounded-xl border border-inherit hover:bg-black/5 dark:hover:bg-white/10 transition-all text-xs flex items-center gap-1 text-purple-600 dark:text-purple-400 font-bold hover:scale-105 active:scale-95"
+                className="p-1.5 sm:px-2 sm:py-1.5 rounded-xl border border-inherit hover:bg-black/5 dark:hover:bg-white/10 transition-all text-xs flex items-center gap-1 text-purple-600 dark:text-purple-400 font-bold hover:scale-105 active:scale-95"
                 title="حالت مطالعه عمیق و بدون حواس‌پرتی (مخفی‌سازی ابزارها و دکمه‌ها)"
               >
                 <EyeOff className="w-4 h-4" />
-                <span className="hidden sm:inline">مطالعه عمیق</span>
+                <span className="hidden md:inline">مطالعه عمیق</span>
               </button>
 
               {/* Notes & Highlights Drawer Toggle */}
               <button
                 onClick={() => setShowNotesDrawer(!showNotesDrawer)}
-                className={`p-1.5 rounded-xl border transition-all text-xs flex items-center gap-1 ${
+                className={`p-1.5 sm:px-2 sm:py-1.5 rounded-xl border transition-all text-xs flex items-center gap-1 ${
                   showNotesDrawer
                     ? 'bg-blue-600 text-white border-blue-600 font-bold'
                     : 'border-inherit hover:bg-black/5 dark:hover:bg-white/10'
@@ -405,7 +446,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                 title="یادداشت‌ها و هایلایت‌های این بخش"
               >
                 <FileText className="w-4 h-4" />
-                <span className="hidden sm:inline">یادداشت</span>
+                <span className="hidden md:inline">یادداشت</span>
                 {(currentBookHighlights.length > 0 || currentBookNotes.length > 0) && (
                   <span className="w-2 h-2 rounded-full bg-amber-400" />
                 )}
@@ -436,26 +477,71 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                 </button>
               </div>
 
-              {/* Reading theme toggler */}
-              <div className="flex items-center rounded-lg bg-black/5 dark:bg-white/10 p-0.5">
+              {/* Reading theme toggler (Sepia, True Black AMOLED, Light, Dark) */}
+              <div className="flex items-center rounded-xl bg-black/5 dark:bg-white/10 p-1 gap-1">
+                {/* 1. White / Light Theme */}
                 <button
+                  id="reader-theme-light-btn"
+                  type="button"
                   onClick={() => setReaderTheme('light')}
-                  className={`w-5 h-5 rounded-full border border-neutral-300 mr-1 ${readerTheme === 'light' ? 'ring-2 ring-blue-500' : ''}`}
-                  style={{ backgroundColor: '#ffffff' }}
-                  title="پوسته سفید"
-                />
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-all ${
+                    readerTheme === 'light'
+                      ? 'bg-white text-neutral-900 shadow-xs ring-2 ring-blue-500 font-bold'
+                      : 'opacity-70 hover:opacity-100 hover:bg-black/5'
+                  }`}
+                  title="پوسته سفید (حالت روز)"
+                >
+                  <span className="w-3.5 h-3.5 rounded-full bg-white border border-neutral-300 inline-block shadow-2xs shrink-0" />
+                  <span className="text-[11px] hidden lg:inline">سفید</span>
+                </button>
+
+                {/* 2. Sepia Theme (قهوه‌ای روشن کاغذی - کاهش نور آبی و خستگی چشم) */}
                 <button
+                  id="reader-theme-sepia-btn"
+                  type="button"
                   onClick={() => setReaderTheme('sepia')}
-                  className={`w-5 h-5 rounded-full border border-[#d6c7b0] mr-1 ${readerTheme === 'sepia' ? 'ring-2 ring-amber-600' : ''}`}
-                  style={{ backgroundColor: '#f5ebd7' }}
-                  title="پوسته کاغذی سپیا"
-                />
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition-all ${
+                    readerTheme === 'sepia'
+                      ? 'bg-[#f7eed8] text-[#3d2b1f] shadow-xs ring-2 ring-amber-600 font-bold'
+                      : 'opacity-75 hover:opacity-100 hover:bg-amber-600/10 text-amber-900 dark:text-amber-200'
+                  }`}
+                  title="پوسته سپیا (قهوه‌ای روشن کاغذی - برای کاهش فشار و خستگی چشم هنگام مطالعه)"
+                >
+                  <span className="w-3.5 h-3.5 rounded-full bg-[#ebd8be] border border-[#cfb591] inline-block shadow-2xs shrink-0" />
+                  <span className="text-[11px] font-bold">سپیا (قهوه‌ای)</span>
+                </button>
+
+                {/* 3. Dark Theme (خاکستری تیره ملایم) */}
                 <button
+                  id="reader-theme-dark-btn"
+                  type="button"
                   onClick={() => setReaderTheme('dark')}
-                  className={`w-5 h-5 rounded-full border border-neutral-700 ${readerTheme === 'dark' ? 'ring-2 ring-blue-400' : ''}`}
-                  style={{ backgroundColor: '#202023' }}
-                  title="پوسته تاریک"
-                />
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-all ${
+                    readerTheme === 'dark'
+                      ? 'bg-[#27272a] text-white shadow-xs ring-2 ring-blue-400 font-bold'
+                      : 'opacity-70 hover:opacity-100 hover:bg-white/10'
+                  }`}
+                  title="پوسته تیره ملایم (شب)"
+                >
+                  <span className="w-3.5 h-3.5 rounded-full bg-[#27272a] border border-neutral-600 inline-block shadow-2xs shrink-0" />
+                  <span className="text-[11px] hidden lg:inline">تیره</span>
+                </button>
+
+                {/* 4. True Black AMOLED Theme (مشکی مطلق بدون نور پس‌زمینه) */}
+                <button
+                  id="reader-theme-amoled-btn"
+                  type="button"
+                  onClick={() => setReaderTheme('amoled')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition-all ${
+                    readerTheme === 'amoled'
+                      ? 'bg-black text-white shadow-xs ring-2 ring-indigo-400 font-bold border border-neutral-700'
+                      : 'opacity-75 hover:opacity-100 hover:bg-white/10'
+                  }`}
+                  title="تیره واقعی (مشکی مطلق AMOLED - بدون تابش نور و محافظت حداکثری چشم در تاریکی)"
+                >
+                  <span className="w-3.5 h-3.5 rounded-full bg-black border border-neutral-600 inline-block shadow-2xs shrink-0" />
+                  <span className="text-[11px] font-bold">مشکی مطلق</span>
+                </button>
               </div>
             </div>
           </header>
@@ -585,25 +671,6 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                 </div>
               )}
 
-              {/* Similar Books Suggestion at the end of reader */}
-              {allBooks.length > 1 && onSelectRelatedBook && (
-                <div className="mt-10 pt-6 border-t border-inherit">
-                  <SimilarBooks
-                    currentBook={book}
-                    allBooks={allBooks}
-                    onSelectBook={(b) => {
-                      onSelectRelatedBook(b);
-                    }}
-                    onToggleWantToRead={onToggleWantToRead ? (id, e) => {
-                      e.stopPropagation();
-                      onToggleWantToRead(id);
-                    } : undefined}
-                    isDarkMode={readerTheme === 'dark'}
-                    title="پیشنهاد مطالعه بعدی شما (کتاب‌های مشابه)"
-                    subtitle="پس از اتمام این خلاصه، این کتاب‌های پرطرفدار را در اولویت مطالعه خود قرار دهید"
-                  />
-                </div>
-              )}
               {/* In-text Zen Mode Completion & Navigation Actions */}
               {isZenMode && (
                 <div className="mt-12 pt-8 border-t border-inherit flex flex-wrap items-center justify-between gap-4 pb-6">
