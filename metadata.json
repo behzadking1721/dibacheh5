@@ -1,0 +1,6 @@
+{
+  "name": "خلاصه کده",
+  "description": "سامانه هوشمند مطالعه و مرور خلاصه برترین کتاب‌های جهان به زبان فارسی همراه با ریدر اختصاصی و حالت آفلاین",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
