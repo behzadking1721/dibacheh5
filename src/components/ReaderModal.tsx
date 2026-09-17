@@ -222,6 +222,7 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
 
   const themeClasses = {
     light: 'bg-white text-neutral-900 border-neutral-200',
+    yellow: 'bg-[#faf3d2] text-[#2c2314] border-[#e6dcaf]',
     sepia: 'bg-[#f7eed8] text-[#3d2b1f] border-[#e2d1b7]',
     dark: 'bg-[#18181b] text-neutral-200 border-neutral-800',
     amoled: 'bg-[#000000] text-[#dedee5] border-[#222222]',
@@ -369,19 +370,22 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      const themes: ReaderTheme[] = ['light', 'sepia', 'dark', 'amoled'];
+                      const themes: ReaderTheme[] = ['light', 'yellow', 'sepia', 'dark', 'amoled'];
                       const next = themes[(themes.indexOf(readerTheme) + 1) % themes.length];
                       setReaderTheme(next);
                     }}
-                    className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[10px] font-bold flex items-center gap-1 transition-colors"
-                    title="تغییر تم رنگی ریدر (سفید، سپیا، تیره، مشکی مطلق)"
+                    className="p-1 rounded-full bg-white/10 hover:bg-white/20 transition-all flex items-center justify-center"
+                    title="تغییر تم رنگی ریدر"
+                    aria-label="تغییر تم مطالعه"
                   >
                     <span
-                      className="w-2.5 h-2.5 rounded-full border border-white/40 inline-block shrink-0"
+                      className="w-3.5 h-3.5 rounded-full border border-white/40 inline-block shadow-2xs"
                       style={{
                         backgroundColor:
                           readerTheme === 'light'
                             ? '#ffffff'
+                            : readerTheme === 'yellow'
+                            ? '#f6ea9e'
                             : readerTheme === 'sepia'
                             ? '#ebd9bf'
                             : readerTheme === 'dark'
@@ -389,15 +393,6 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                             : '#000000',
                       }}
                     />
-                    <span>
-                      {readerTheme === 'light'
-                        ? 'سفید'
-                        : readerTheme === 'sepia'
-                        ? 'سپیا (قهوه‌ای)'
-                        : readerTheme === 'dark'
-                        ? 'تیره'
-                        : 'مشکی مطلق'}
-                    </span>
                   </button>
                 </div>
               </div>
@@ -477,70 +472,90 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                 </button>
               </div>
 
-              {/* Reading theme toggler (Sepia, True Black AMOLED, Light, Dark) */}
-              <div className="flex items-center rounded-xl bg-black/5 dark:bg-white/10 p-1 gap-1">
-                {/* 1. White / Light Theme */}
+              {/* Reading theme color selector (Only colors, no text names) */}
+              <div
+                className="flex items-center rounded-xl bg-black/5 dark:bg-white/10 p-1 gap-1.5"
+                role="group"
+                aria-label="انتخاب رنگ تم مطالعه"
+              >
+                {/* 1. White Theme */}
                 <button
                   id="reader-theme-light-btn"
                   type="button"
                   onClick={() => setReaderTheme('light')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-all ${
+                  className={`w-6 h-6 rounded-full transition-transform flex items-center justify-center p-0.5 ${
                     readerTheme === 'light'
-                      ? 'bg-white text-neutral-900 shadow-xs ring-2 ring-blue-500 font-bold'
-                      : 'opacity-70 hover:opacity-100 hover:bg-black/5'
+                      ? 'ring-2 ring-blue-500 scale-110 shadow-xs'
+                      : 'opacity-75 hover:opacity-100 hover:scale-105'
                   }`}
-                  title="پوسته سفید (حالت روز)"
+                  title="سفید (حالت روز)"
+                  aria-label="پوسته سفید"
                 >
-                  <span className="w-3.5 h-3.5 rounded-full bg-white border border-neutral-300 inline-block shadow-2xs shrink-0" />
-                  <span className="text-[11px] hidden lg:inline">سفید</span>
+                  <span className="w-full h-full rounded-full bg-white border border-neutral-300 block shadow-2xs" />
                 </button>
 
-                {/* 2. Sepia Theme (قهوه‌ای روشن کاغذی - کاهش نور آبی و خستگی چشم) */}
+                {/* 2. Book Warm Yellow Theme (زرد ملایم کتابخوانی) */}
+                <button
+                  id="reader-theme-yellow-btn"
+                  type="button"
+                  onClick={() => setReaderTheme('yellow')}
+                  className={`w-6 h-6 rounded-full transition-transform flex items-center justify-center p-0.5 ${
+                    readerTheme === 'yellow'
+                      ? 'ring-2 ring-amber-500 scale-110 shadow-xs'
+                      : 'opacity-75 hover:opacity-100 hover:scale-105'
+                  }`}
+                  title="زرد ملایم کتابخوانی (کاهش خستگی چشم و نور آبی)"
+                  aria-label="پوسته زرد کتابخوانی"
+                >
+                  <span className="w-full h-full rounded-full bg-[#faf09f] border border-[#d6c774] block shadow-2xs" />
+                </button>
+
+                {/* 3. Sepia Theme (سپیا - قهوه‌ای کاغذی) */}
                 <button
                   id="reader-theme-sepia-btn"
                   type="button"
                   onClick={() => setReaderTheme('sepia')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition-all ${
+                  className={`w-6 h-6 rounded-full transition-transform flex items-center justify-center p-0.5 ${
                     readerTheme === 'sepia'
-                      ? 'bg-[#f7eed8] text-[#3d2b1f] shadow-xs ring-2 ring-amber-600 font-bold'
-                      : 'opacity-75 hover:opacity-100 hover:bg-amber-600/10 text-amber-900 dark:text-amber-200'
+                      ? 'ring-2 ring-amber-700 scale-110 shadow-xs'
+                      : 'opacity-75 hover:opacity-100 hover:scale-105'
                   }`}
-                  title="پوسته سپیا (قهوه‌ای روشن کاغذی - برای کاهش فشار و خستگی چشم هنگام مطالعه)"
+                  title="سپیا (قهوه‌ای کاغذی)"
+                  aria-label="پوسته سپیا"
                 >
-                  <span className="w-3.5 h-3.5 rounded-full bg-[#ebd8be] border border-[#cfb591] inline-block shadow-2xs shrink-0" />
-                  <span className="text-[11px] font-bold">سپیا (قهوه‌ای)</span>
+                  <span className="w-full h-full rounded-full bg-[#ebd8be] border border-[#cfb591] block shadow-2xs" />
                 </button>
 
-                {/* 3. Dark Theme (خاکستری تیره ملایم) */}
+                {/* 4. Dark Theme (خاکستری تیره ملایم) */}
                 <button
                   id="reader-theme-dark-btn"
                   type="button"
                   onClick={() => setReaderTheme('dark')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-all ${
+                  className={`w-6 h-6 rounded-full transition-transform flex items-center justify-center p-0.5 ${
                     readerTheme === 'dark'
-                      ? 'bg-[#27272a] text-white shadow-xs ring-2 ring-blue-400 font-bold'
-                      : 'opacity-70 hover:opacity-100 hover:bg-white/10'
+                      ? 'ring-2 ring-neutral-400 scale-110 shadow-xs'
+                      : 'opacity-75 hover:opacity-100 hover:scale-105'
                   }`}
-                  title="پوسته تیره ملایم (شب)"
+                  title="تیره ملایم"
+                  aria-label="پوسته تیره"
                 >
-                  <span className="w-3.5 h-3.5 rounded-full bg-[#27272a] border border-neutral-600 inline-block shadow-2xs shrink-0" />
-                  <span className="text-[11px] hidden lg:inline">تیره</span>
+                  <span className="w-full h-full rounded-full bg-[#27272a] border border-neutral-600 block shadow-2xs" />
                 </button>
 
-                {/* 4. True Black AMOLED Theme (مشکی مطلق بدون نور پس‌زمینه) */}
+                {/* 5. True Black AMOLED Theme (مشکی مطلق) */}
                 <button
                   id="reader-theme-amoled-btn"
                   type="button"
                   onClick={() => setReaderTheme('amoled')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition-all ${
+                  className={`w-6 h-6 rounded-full transition-transform flex items-center justify-center p-0.5 ${
                     readerTheme === 'amoled'
-                      ? 'bg-black text-white shadow-xs ring-2 ring-indigo-400 font-bold border border-neutral-700'
-                      : 'opacity-75 hover:opacity-100 hover:bg-white/10'
+                      ? 'ring-2 ring-indigo-400 scale-110 shadow-xs'
+                      : 'opacity-75 hover:opacity-100 hover:scale-105'
                   }`}
-                  title="تیره واقعی (مشکی مطلق AMOLED - بدون تابش نور و محافظت حداکثری چشم در تاریکی)"
+                  title="مشکی مطلق (تیره واقعی AMOLED)"
+                  aria-label="پوسته مشکی مطلق"
                 >
-                  <span className="w-3.5 h-3.5 rounded-full bg-black border border-neutral-600 inline-block shadow-2xs shrink-0" />
-                  <span className="text-[11px] font-bold">مشکی مطلق</span>
+                  <span className="w-full h-full rounded-full bg-black border border-neutral-700 block shadow-2xs" />
                 </button>
               </div>
             </div>

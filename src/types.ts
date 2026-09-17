@@ -125,4 +125,4 @@ export interface AchievementBadge {
 
 export type TabType = 'home' | 'wantToRead' | 'favorites' | 'read' | 'notes' | 'offline' | 'profile' | 'admin';
 export type SortOption = 'title' | 'rating' | 'year' | 'popular';
-export type ReaderTheme = 'light' | 'sepia' | 'dark' | 'amoled';
+export type ReaderTheme = 'light' | 'yellow' | 'sepia' | 'dark' | 'amoled';
