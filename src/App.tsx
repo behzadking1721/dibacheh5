@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { initialBooks, categories, initialUserStats } from './data/sampleBooks';
 import { initialAds } from './data/sampleAds';
-import { Book, TabType, SortOption, Highlight, Note, UserStats, AdItem } from './types';
+import { Book, TabType, SortOption, Highlight, Note, UserStats, AdItem, DailyReminderSettings } from './types';
 import { Header } from './components/Header';
 import { FilterBar } from './components/FilterBar';
 import { BookCard } from './components/BookCard';
@@ -10,6 +10,7 @@ import { ReaderModal } from './components/ReaderModal';
 import { SuggestionsModal } from './components/SuggestionsModal';
 import { BookOfDayBanner } from './components/BookOfDayBanner';
 import { BookCuratedSections } from './components/BookCuratedSections';
+import { SmartRecommendationsSection } from './components/SmartRecommendationsSection';
 import { GamificationBanner } from './components/GamificationBanner';
 import { ChallengesModal } from './components/ChallengesModal';
 import { NotesHighlightsView } from './components/NotesHighlightsView';
@@ -17,6 +18,9 @@ import { UserProfileView } from './components/UserProfileView';
 import { AdminDashboardView } from './components/AdminDashboardView';
 import { AdBanner } from './components/AdBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { DailyReminderModal } from './components/DailyReminderModal';
+import { ReminderToast } from './components/ReminderToast';
+import { playReminderChime, triggerBrowserNotification } from './utils/notificationSound';
 import { RotateCcw, BookOpen, HardDriveDownload, Sparkles } from 'lucide-react';
 
 const Storage = {
@@ -168,6 +172,114 @@ export default function App() {
   const [suggestionsVisible, setSuggestionsVisible] = useState(false);
   const [challengesVisible, setChallengesVisible] = useState(false);
   const [isPhoneFrame, setIsPhoneFrame] = useState(false);
+
+  // Daily Reading Reminder State
+  const [reminderSettings, setReminderSettings] = useState<DailyReminderSettings>(() => {
+    const saved = Storage.getItem('reading_reminder_settings');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // ignore
+      }
+    }
+    const initialPush =
+      typeof window !== 'undefined' && 'Notification' in window
+        ? (Notification.permission as 'default' | 'granted' | 'denied')
+        : 'default';
+    return {
+      enabled: true,
+      time: '20:30',
+      soundEnabled: true,
+      pushPermission: initialPush,
+    };
+  });
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [reminderToastVisible, setReminderToastVisible] = useState(false);
+  const [reminderTargetBook, setReminderTargetBook] = useState<Book | null>(null);
+
+  // Determine suggested reading book for reminder
+  const getSuggestedReadingBook = (): Book | null => {
+    // 1. Book currently in progress
+    const inProgress = books.find((b) => (b.progress || 0) > 0 && (b.progress || 0) < 0.98);
+    if (inProgress) return inProgress;
+
+    // 2. Book in want-to-read list
+    const wantToReadBook = books.find((b) => b.isWantToRead);
+    if (wantToReadBook) return wantToReadBook;
+
+    // 3. Book of the day or first available book
+    return books.find((b) => b.isBookOfDay) || books[0] || null;
+  };
+
+  // Trigger daily reminder with sound, toast, and browser notification
+  const triggerReminder = (bookOverride?: Book) => {
+    const target = bookOverride || getSuggestedReadingBook();
+    if (!target) return;
+
+    setReminderTargetBook(target);
+    setReminderToastVisible(true);
+
+    if (reminderSettings.soundEnabled) {
+      playReminderChime();
+    }
+
+    // Attempt native browser notification
+    const progressPercent = Math.round((target.progress || 0) * 100);
+    const bodyText =
+      progressPercent > 0
+        ? `شما در حال مطالعه کتاب «${target.title}» هستید (${progressPercent}٪ خوانده شده). بیایید چند دقیقه ادامه دهید!`
+        : `کتاب «${target.title}» اثر ${target.author} آماده مطالعه است. برای حفظ زنجیره مطالعه امروز، شروع کنید!`;
+
+    triggerBrowserNotification(`📚 وقت مطالعه روزانه «خلاصه کده»`, {
+      body: bodyText,
+      tag: 'daily-reading-reminder',
+      onClick: () => {
+        handleOpenReader(target);
+      },
+    });
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const updated = {
+      ...reminderSettings,
+      lastNotifiedDate: todayStr,
+    };
+    setReminderSettings(updated);
+    Storage.setItem('reading_reminder_settings', JSON.stringify(updated));
+  };
+
+  // Snooze reminder for 10 minutes
+  const handleSnoozeReminder = () => {
+    setReminderToastVisible(false);
+    setTimeout(() => {
+      triggerReminder();
+    }, 10 * 60 * 1000);
+  };
+
+  // Check reminder schedule every 25 seconds
+  useEffect(() => {
+    const checkReminderSchedule = () => {
+      if (!reminderSettings.enabled) return;
+
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const currentTime = `${hours}:${minutes}`;
+      const todayStr = now.toISOString().split('T')[0];
+
+      if (
+        currentTime === reminderSettings.time &&
+        reminderSettings.lastNotifiedDate !== todayStr &&
+        !readerVisible
+      ) {
+        triggerReminder();
+      }
+    };
+
+    checkReminderSchedule();
+    const interval = setInterval(checkReminderSchedule, 25000);
+    return () => clearInterval(interval);
+  }, [reminderSettings, readerVisible, books]);
 
   // Sync dark mode class on <html> document
   useEffect(() => {
@@ -656,6 +768,8 @@ export default function App() {
           isPhoneFrame={isPhoneFrame}
           onTogglePhoneFrame={() => setIsPhoneFrame(!isPhoneFrame)}
           onOpenSuggestions={() => setSuggestionsVisible(true)}
+          onOpenDailyReminder={() => setShowReminderModal(true)}
+          reminderEnabled={reminderSettings.enabled}
         />
 
         {/* Gamification & Daily Goal Bar (Shown on Home and reading tabs) */}
@@ -679,12 +793,16 @@ export default function App() {
           <UserProfileView
             stats={userStats}
             books={books}
+            notesCount={notes.length}
+            highlightsCount={highlights.length}
             onOpenBook={(book) => {
               setSelectedBook(book);
               setShowModal(true);
             }}
             onRemoveDownloadedBook={handleRemoveDownloadedBook}
             onToggleWantToRead={toggleWantToRead}
+            dailyReminderSettings={reminderSettings}
+            onOpenDailyReminder={() => setShowReminderModal(true)}
             isDarkMode={isDarkMode}
           />
         ) : currentTab === 'admin' ? (
@@ -747,15 +865,35 @@ export default function App() {
               />
             )}
 
+            {/* Smart Personalized Recommendations (پیشنهاد ویژه بر اساس تاریخچه مطالعه و علایق کاربر) */}
+            {currentTab === 'home' && !searchQuery && selectedCategory === 'همه' && (
+              <div className="px-3 sm:px-4 pt-3">
+                <SmartRecommendationsSection
+                  books={books}
+                  highlights={highlights}
+                  notes={notes}
+                  onSelectBook={(b) => {
+                    setSelectedBook(b);
+                    setShowModal(true);
+                  }}
+                  onOpenReader={handleOpenReader}
+                  onToggleFavorite={toggleFavorite}
+                  onToggleWantToRead={toggleWantToRead}
+                  isDarkMode={isDarkMode}
+                />
+              </div>
+            )}
+
             {/* Curated Recommendations by Subject / Topic (جدید، ترند، پیشنهادی، مشهور، باید بخوانم) */}
             {currentTab === 'home' && !searchQuery && selectedCategory === 'همه' && (
-              <div className="px-3 sm:px-4 pt-2">
+              <div className="px-3 sm:px-4 pt-1">
                 <BookCuratedSections
                   books={books}
                   onSelectBook={(b) => {
                     setSelectedBook(b);
                     setShowModal(true);
                   }}
+                  onOpenReader={handleOpenReader}
                   onToggleFavorite={toggleFavorite}
                   onToggleWantToRead={toggleWantToRead}
                   onToggleDownload={toggleDownload}
@@ -954,6 +1092,33 @@ export default function App() {
         <SuggestionsModal
           isOpen={suggestionsVisible}
           onClose={() => setSuggestionsVisible(false)}
+          isDarkMode={isDarkMode}
+        />
+
+        {/* Daily Reading Reminder Modal */}
+        <DailyReminderModal
+          isOpen={showReminderModal}
+          onClose={() => setShowReminderModal(false)}
+          settings={reminderSettings}
+          onUpdateSettings={(newSettings) => {
+            setReminderSettings(newSettings);
+            Storage.setItem('reading_reminder_settings', JSON.stringify(newSettings));
+          }}
+          onTestReminder={() => triggerReminder()}
+          targetBook={getSuggestedReadingBook()}
+          isDarkMode={isDarkMode}
+        />
+
+        {/* Floating In-App Reminder Toast */}
+        <ReminderToast
+          isVisible={reminderToastVisible}
+          targetBook={reminderTargetBook || getSuggestedReadingBook()}
+          onOpenBook={(book) => {
+            setReminderToastVisible(false);
+            handleOpenReader(book);
+          }}
+          onSnooze={handleSnoozeReminder}
+          onClose={() => setReminderToastVisible(false)}
           isDarkMode={isDarkMode}
         />
       </div>

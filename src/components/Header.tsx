@@ -1,5 +1,5 @@
 import React from 'react';
-import { Moon, Sun, Smartphone, Monitor, Lightbulb, User, Shield, BookOpen } from 'lucide-react';
+import { Moon, Sun, Smartphone, Monitor, Lightbulb, User, Shield, BookOpen, Bell } from 'lucide-react';
 import { PWAInstallButton } from './PWAInstallButton';
 import { TabType } from '../types';
 
@@ -11,6 +11,8 @@ interface HeaderProps {
   isPhoneFrame: boolean;
   onTogglePhoneFrame: () => void;
   onOpenSuggestions: () => void;
+  onOpenDailyReminder: () => void;
+  reminderEnabled?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,6 +23,8 @@ export const Header: React.FC<HeaderProps> = ({
   isPhoneFrame,
   onTogglePhoneFrame,
   onOpenSuggestions,
+  onOpenDailyReminder,
+  reminderEnabled = false,
 }) => {
   return (
     <header className="bg-blue-600 text-white shadow-md relative z-10 transition-colors duration-200">
@@ -78,6 +82,23 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Shield className="w-4 h-4" />
               <span className="hidden sm:inline">مدیریت</span>
+            </button>
+
+            {/* Daily Reminder Button */}
+            <button
+              id="header-daily-reminder-btn"
+              onClick={onOpenDailyReminder}
+              className={`p-1.5 rounded-full transition-all relative ${
+                reminderEnabled
+                  ? 'bg-amber-400/25 hover:bg-amber-400/35 text-amber-200'
+                  : 'bg-white/10 hover:bg-white/20 text-white'
+              }`}
+              title={reminderEnabled ? 'یادآور مطالعه روزانه (فعال)' : 'تنظیم یادآور روزانه مطالعه'}
+            >
+              <Bell className="w-4 h-4" />
+              {reminderEnabled && (
+                <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-blue-600 animate-pulse" />
+              )}
             </button>
 
             {/* Suggestions button */}

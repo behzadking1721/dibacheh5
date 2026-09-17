@@ -14,7 +14,10 @@ import {
   ShieldAlert,
   Plus,
   Trash2,
-  Sparkles
+  Sparkles,
+  EyeOff,
+  Minimize2,
+  Glasses
 } from 'lucide-react';
 
 interface ReaderModalProps {
@@ -60,9 +63,35 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
   const [selectedText, setSelectedText] = useState('');
   const [selectionPosition, setSelectionPosition] = useState<{ x: number; y: number } | null>(null);
   const [drmWatermarkVisible, setDrmWatermarkVisible] = useState(true);
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [zenToastVisible, setZenToastVisible] = useState(false);
 
   const contentRef = useRef<HTMLDivElement>(null);
   const readingTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Handle escape key and arrow navigation in Zen mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isZenMode) {
+        setIsZenMode(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isZenMode]);
+
+  const toggleZenMode = () => {
+    const next = !isZenMode;
+    setIsZenMode(next);
+    if (next) {
+      setZenToastVisible(true);
+      setShowNotesDrawer(false);
+      setShowInfoBanner(false);
+      setTimeout(() => {
+        setZenToastVisible(false);
+      }, 3200);
+    }
+  };
 
   useEffect(() => {
     if (book) {
@@ -237,10 +266,12 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
       )}
 
       <div
-        className={`flex-1 flex flex-col w-full max-w-3xl mx-auto my-0 sm:my-3 sm:rounded-3xl shadow-2xl overflow-hidden border relative ${themeClasses}`}
+        className={`flex-1 flex flex-col w-full transition-all duration-300 mx-auto my-0 ${
+          isZenMode ? 'max-w-4xl sm:my-1 sm:rounded-2xl' : 'max-w-3xl sm:my-3 sm:rounded-3xl'
+        } shadow-2xl overflow-hidden border relative ${themeClasses}`}
       >
         {/* Anti-Piracy / DRM Dynamic Watermark layer (Technical & Security Optimization) */}
-        {drmWatermarkVisible && (
+        {!isZenMode && drmWatermarkVisible && (
           <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-around opacity-[0.035] dark:opacity-[0.05] overflow-hidden select-none">
             {Array.from({ length: 5 }).map((_, i) => (
               <div
@@ -253,112 +284,208 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
           </div>
         )}
 
-        {/* Top Header */}
-        <header className="px-4 py-3 border-b flex items-center justify-between gap-2 shrink-0 border-inherit bg-inherit/90 backdrop-blur-xs relative z-20">
-          <button
-            id="close-reader-btn"
-            onClick={() => onClose(progress)}
-            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-          >
-            <X className="w-4 h-4" />
-            <span>بستن ریدر</span>
-          </button>
-
-          <div className="text-center flex-1 min-w-0 px-2">
-            <h3 className="text-sm font-bold truncate">{book.title}</h3>
-            <p className="text-[11px] opacity-70 truncate">{book.author}</p>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            {/* Notes & Highlights Drawer Toggle */}
-            <button
-              onClick={() => setShowNotesDrawer(!showNotesDrawer)}
-              className={`p-1.5 rounded-xl border transition-all text-xs flex items-center gap-1 ${
-                showNotesDrawer
-                  ? 'bg-blue-600 text-white border-blue-600 font-bold'
-                  : 'border-inherit hover:bg-black/5 dark:hover:bg-white/10'
-              }`}
-              title="یادداشت‌ها و هایلایت‌های این بخش"
-            >
-              <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">یادداشت</span>
-              {(currentBookHighlights.length > 0 || currentBookNotes.length > 0) && (
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
-              )}
-            </button>
-
-            {/* Font size toggler */}
-            <div className="flex items-center rounded-lg bg-black/5 dark:bg-white/10 p-0.5 text-xs">
-              <button
-                onClick={() => setFontSize('sm')}
-                className={`px-1.5 py-0.5 rounded ${fontSize === 'sm' ? 'bg-blue-600 text-white font-bold' : 'opacity-70'}`}
-                title="فونت کوچک"
-              >
-                A-
-              </button>
-              <button
-                onClick={() => setFontSize('base')}
-                className={`px-1.5 py-0.5 rounded ${fontSize === 'base' ? 'bg-blue-600 text-white font-bold' : 'opacity-70'}`}
-                title="فونت عادی"
-              >
-                A
-              </button>
-              <button
-                onClick={() => setFontSize('lg')}
-                className={`px-1.5 py-0.5 rounded ${fontSize === 'lg' ? 'bg-blue-600 text-white font-bold' : 'opacity-70'}`}
-                title="فونت بزرگ"
-              >
-                A+
-              </button>
-            </div>
-
-            {/* Reading theme toggler */}
-            <div className="flex items-center rounded-lg bg-black/5 dark:bg-white/10 p-0.5">
-              <button
-                onClick={() => setReaderTheme('light')}
-                className={`w-5 h-5 rounded-full border border-neutral-300 mr-1 ${readerTheme === 'light' ? 'ring-2 ring-blue-500' : ''}`}
-                style={{ backgroundColor: '#ffffff' }}
-                title="پوسته سفید"
-              />
-              <button
-                onClick={() => setReaderTheme('sepia')}
-                className={`w-5 h-5 rounded-full border border-[#d6c7b0] mr-1 ${readerTheme === 'sepia' ? 'ring-2 ring-amber-600' : ''}`}
-                style={{ backgroundColor: '#f5ebd7' }}
-                title="پوسته کاغذی سپیا"
-              />
-              <button
-                onClick={() => setReaderTheme('dark')}
-                className={`w-5 h-5 rounded-full border border-neutral-700 ${readerTheme === 'dark' ? 'ring-2 ring-blue-400' : ''}`}
-                style={{ backgroundColor: '#202023' }}
-                title="پوسته تاریک"
-              />
-            </div>
-          </div>
-        </header>
-
-        {/* Reading Progress Indicator */}
-        <div className="px-4 py-2 bg-black/3 dark:bg-white/5 border-b border-inherit flex items-center gap-3 text-xs shrink-0 relative z-20">
-          <div className="flex-1 h-1.5 bg-black/10 dark:bg-white/15 rounded-full overflow-hidden">
+        {/* Minimal Subtle Zen Mode Top Progress Bar */}
+        {isZenMode && (
+          <div className="absolute top-0 inset-x-0 h-1 bg-black/5 dark:bg-white/5 z-40">
             <div
-              className="h-full bg-blue-600 rounded-full transition-all duration-300"
+              className="h-full bg-indigo-500 dark:bg-indigo-400 transition-all duration-300"
               style={{ width: `${Math.round(progress * 100)}%` }}
             />
           </div>
-          <span className="font-bold opacity-80 shrink-0">
-            {Math.round(progress * 100)}٪ مطالعه‌شده
-          </span>
-          <button
-            onClick={() => setShowInfoBanner(!showInfoBanner)}
-            className="text-blue-500 hover:opacity-80 p-0.5 flex items-center gap-1"
-            title="اطلاعات فنی و امنیتی DRM"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            <span className="text-[10px] hidden sm:inline">امنیت محتوا</span>
-          </button>
-        </div>
+        )}
 
-        {/* Info banner about Technical Security & DRM */}
-        {showInfoBanner && (
+        {/* Floating Zen Controls Bar */}
+        {isZenMode && (
+          <>
+            {/* Transient Toast Notification on entering Zen mode */}
+            {zenToastVisible && (
+              <div className="absolute top-16 inset-x-0 mx-auto w-fit z-50 px-4 py-2 rounded-2xl bg-neutral-900/90 text-white text-xs font-semibold backdrop-blur-md shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 flex items-center gap-2 border border-white/10">
+                <EyeOff className="w-4 h-4 text-indigo-400" />
+                <span>حالت مطالعه عمیق و بدون حواس‌پرتی فعال شد. فقط متن اصلی نمایش داده می‌شود.</span>
+              </div>
+            )}
+
+            {/* Subtle floating control pill */}
+            <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-40 flex items-center gap-2 animate-in fade-in duration-200">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900/80 hover:bg-neutral-900 text-white backdrop-blur-md shadow-xl border border-white/10 text-xs transition-all">
+                <button
+                  id="exit-zen-mode-btn"
+                  type="button"
+                  onClick={() => setIsZenMode(false)}
+                  className="flex items-center gap-1.5 hover:text-indigo-300 font-bold transition-colors cursor-pointer"
+                  title="خروج از حالت مطالعه عمیق و نمایش مجدد تمام ابزارها (Esc)"
+                >
+                  <Minimize2 className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>خروج از تمرکز</span>
+                  <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-white/15 rounded border border-white/20">
+                    Esc
+                  </kbd>
+                </button>
+
+                <span className="w-px h-3.5 bg-white/20" />
+
+                <span className="text-[11px] text-white/80 font-medium">
+                  {chapters.length > 1 ? `بخش ${currentChapterIndex + 1} از ${chapters.length}` : ''} ({Math.round(progress * 100)}٪)
+                </span>
+
+                {chapters.length > 1 && (
+                  <div className="flex items-center gap-0.5 mr-1">
+                    <button
+                      onClick={handlePrevChapter}
+                      disabled={currentChapterIndex === 0}
+                      className="p-1 rounded-full hover:bg-white/20 disabled:opacity-25 disabled:pointer-events-none transition-colors"
+                      title="فصل قبلی"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={handleNextChapter}
+                      disabled={currentChapterIndex >= chapters.length - 1}
+                      className="p-1 rounded-full hover:bg-white/20 disabled:opacity-25 disabled:pointer-events-none transition-colors"
+                      title="فصل بعدی"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Quick font toggle in Zen mode */}
+                <div className="hidden sm:flex items-center gap-1 border-r border-white/20 pr-1.5 mr-1">
+                  <button
+                    onClick={() => setFontSize(fontSize === 'sm' ? 'base' : fontSize === 'base' ? 'lg' : 'sm')}
+                    className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[10px] font-bold"
+                    title="تغییر اندازه فونت"
+                  >
+                    فونت: {fontSize === 'sm' ? 'کوچک' : fontSize === 'base' ? 'عادی' : 'بزرگ'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Top Header (Hidden in Zen mode) */}
+        {!isZenMode && (
+          <header className="px-4 py-3 border-b flex items-center justify-between gap-2 shrink-0 border-inherit bg-inherit/90 backdrop-blur-xs relative z-20">
+            <button
+              id="close-reader-btn"
+              onClick={() => onClose(progress)}
+              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+            >
+              <X className="w-4 h-4" />
+              <span>بستن ریدر</span>
+            </button>
+
+            <div className="text-center flex-1 min-w-0 px-2">
+              <h3 className="text-sm font-bold truncate">{book.title}</h3>
+              <p className="text-[11px] opacity-70 truncate">{book.author}</p>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              {/* Deep Reading / Zen Mode Toggle Button */}
+              <button
+                id="toggle-zen-mode-btn"
+                type="button"
+                onClick={toggleZenMode}
+                className="p-1.5 rounded-xl border border-inherit hover:bg-black/5 dark:hover:bg-white/10 transition-all text-xs flex items-center gap-1 text-purple-600 dark:text-purple-400 font-bold hover:scale-105 active:scale-95"
+                title="حالت مطالعه عمیق و بدون حواس‌پرتی (مخفی‌سازی ابزارها و دکمه‌ها)"
+              >
+                <EyeOff className="w-4 h-4" />
+                <span className="hidden sm:inline">مطالعه عمیق</span>
+              </button>
+
+              {/* Notes & Highlights Drawer Toggle */}
+              <button
+                onClick={() => setShowNotesDrawer(!showNotesDrawer)}
+                className={`p-1.5 rounded-xl border transition-all text-xs flex items-center gap-1 ${
+                  showNotesDrawer
+                    ? 'bg-blue-600 text-white border-blue-600 font-bold'
+                    : 'border-inherit hover:bg-black/5 dark:hover:bg-white/10'
+                }`}
+                title="یادداشت‌ها و هایلایت‌های این بخش"
+              >
+                <FileText className="w-4 h-4" />
+                <span className="hidden sm:inline">یادداشت</span>
+                {(currentBookHighlights.length > 0 || currentBookNotes.length > 0) && (
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                )}
+              </button>
+
+              {/* Font size toggler */}
+              <div className="flex items-center rounded-lg bg-black/5 dark:bg-white/10 p-0.5 text-xs">
+                <button
+                  onClick={() => setFontSize('sm')}
+                  className={`px-1.5 py-0.5 rounded ${fontSize === 'sm' ? 'bg-blue-600 text-white font-bold' : 'opacity-70'}`}
+                  title="فونت کوچک"
+                >
+                  A-
+                </button>
+                <button
+                  onClick={() => setFontSize('base')}
+                  className={`px-1.5 py-0.5 rounded ${fontSize === 'base' ? 'bg-blue-600 text-white font-bold' : 'opacity-70'}`}
+                  title="فونت عادی"
+                >
+                  A
+                </button>
+                <button
+                  onClick={() => setFontSize('lg')}
+                  className={`px-1.5 py-0.5 rounded ${fontSize === 'lg' ? 'bg-blue-600 text-white font-bold' : 'opacity-70'}`}
+                  title="فونت بزرگ"
+                >
+                  A+
+                </button>
+              </div>
+
+              {/* Reading theme toggler */}
+              <div className="flex items-center rounded-lg bg-black/5 dark:bg-white/10 p-0.5">
+                <button
+                  onClick={() => setReaderTheme('light')}
+                  className={`w-5 h-5 rounded-full border border-neutral-300 mr-1 ${readerTheme === 'light' ? 'ring-2 ring-blue-500' : ''}`}
+                  style={{ backgroundColor: '#ffffff' }}
+                  title="پوسته سفید"
+                />
+                <button
+                  onClick={() => setReaderTheme('sepia')}
+                  className={`w-5 h-5 rounded-full border border-[#d6c7b0] mr-1 ${readerTheme === 'sepia' ? 'ring-2 ring-amber-600' : ''}`}
+                  style={{ backgroundColor: '#f5ebd7' }}
+                  title="پوسته کاغذی سپیا"
+                />
+                <button
+                  onClick={() => setReaderTheme('dark')}
+                  className={`w-5 h-5 rounded-full border border-neutral-700 ${readerTheme === 'dark' ? 'ring-2 ring-blue-400' : ''}`}
+                  style={{ backgroundColor: '#202023' }}
+                  title="پوسته تاریک"
+                />
+              </div>
+            </div>
+          </header>
+        )}
+
+        {/* Reading Progress Indicator (Hidden in Zen mode) */}
+        {!isZenMode && (
+          <div className="px-4 py-2 bg-black/3 dark:bg-white/5 border-b border-inherit flex items-center gap-3 text-xs shrink-0 relative z-20">
+            <div className="flex-1 h-1.5 bg-black/10 dark:bg-white/15 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                style={{ width: `${Math.round(progress * 100)}%` }}
+              />
+            </div>
+            <span className="font-bold opacity-80 shrink-0">
+              {Math.round(progress * 100)}٪ مطالعه‌شده
+            </span>
+            <button
+              onClick={() => setShowInfoBanner(!showInfoBanner)}
+              className="text-blue-500 hover:opacity-80 p-0.5 flex items-center gap-1"
+              title="اطلاعات فنی و امنیتی DRM"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="text-[10px] hidden sm:inline">امنیت محتوا</span>
+            </button>
+          </div>
+        )}
+
+        {/* Info banner about Technical Security & DRM (Hidden in Zen mode) */}
+        {!isZenMode && showInfoBanner && (
           <div className="mx-4 mt-3 p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 text-xs text-blue-900 dark:text-blue-200 flex items-start gap-2 animate-in fade-in relative z-20">
             <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
             <div className="flex-1 leading-relaxed">
@@ -376,8 +503,8 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
           </div>
         )}
 
-        {/* Reader Chapters Selector */}
-        {chapters.length > 1 && (
+        {/* Reader Chapters Selector (Hidden in Zen mode) */}
+        {!isZenMode && chapters.length > 1 && (
           <div className="px-4 py-2 border-b border-inherit flex gap-2 overflow-x-auto no-scrollbar shrink-0 text-xs relative z-20">
             {chapters.map((chap, idx) => (
               <button
@@ -406,19 +533,23 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
           <div
             ref={contentRef}
             onMouseUp={handleMouseUp}
-            className="flex-1 overflow-y-auto px-6 sm:px-10 py-6 sm:py-8 space-y-6"
+            className={`flex-1 overflow-y-auto ${
+              isZenMode ? 'px-6 sm:px-16 py-12 sm:py-16' : 'px-6 sm:px-10 py-6 sm:py-8'
+            } space-y-6 transition-all duration-300`}
           >
-            <div className="max-w-2xl mx-auto">
-              {/* Highlight instruction helper */}
-              <div className="mb-4 text-center">
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/5 dark:bg-white/5 text-[11px] opacity-75">
-                  <Highlighter className="w-3 h-3 text-amber-500" />
-                  <span>برای هایلایت کردن، متن دلخواه خود را در صفحه با ماوس یا لمس انتخاب کنید</span>
-                </span>
-              </div>
+            <div className={`${isZenMode ? 'max-w-3xl' : 'max-w-2xl'} mx-auto`}>
+              {/* Highlight instruction helper (Hidden in Zen mode for total immersion) */}
+              {!isZenMode && (
+                <div className="mb-4 text-center">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/5 dark:bg-white/5 text-[11px] opacity-75">
+                    <Highlighter className="w-3 h-3 text-amber-500" />
+                    <span>برای هایلایت کردن، متن دلخواه خود را در صفحه با ماوس یا لمس انتخاب کنید</span>
+                  </span>
+                </div>
+              )}
 
               {/* Chapter Heading */}
-              <div className="mb-6 pb-4 border-b border-inherit text-center">
+              <div className="mb-8 pb-4 border-b border-inherit text-center">
                 <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 block mb-1">
                   بخش {currentChapterIndex + 1} از {chapters.length}
                 </span>
@@ -471,6 +602,47 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
                     title="پیشنهاد مطالعه بعدی شما (کتاب‌های مشابه)"
                     subtitle="پس از اتمام این خلاصه، این کتاب‌های پرطرفدار را در اولویت مطالعه خود قرار دهید"
                   />
+                </div>
+              )}
+              {/* In-text Zen Mode Completion & Navigation Actions */}
+              {isZenMode && (
+                <div className="mt-12 pt-8 border-t border-inherit flex flex-wrap items-center justify-between gap-4 pb-6">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handlePrevChapter}
+                      disabled={currentChapterIndex === 0}
+                      className="flex items-center gap-1 px-3.5 py-2 rounded-xl border border-inherit text-xs font-semibold hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                      <span>فصل قبلی</span>
+                    </button>
+                    {currentChapterIndex < chapters.length - 1 ? (
+                      <button
+                        onClick={handleNextChapter}
+                        className="flex items-center gap-1 px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold transition-all active:scale-95"
+                      >
+                        <span>فصل بعدی</span>
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleFinish}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all active:scale-95"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>پایان و ثبت خوانده‌شده (+۵۰ XP)</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsZenMode(false)}
+                    className="text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-white flex items-center gap-1 transition-colors"
+                  >
+                    <Minimize2 className="w-3.5 h-3.5" />
+                    <span>خروج از حالت مطالعه عمیق (Esc)</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -573,43 +745,45 @@ export const ReaderModal: React.FC<ReaderModalProps> = ({
           )}
         </div>
 
-        {/* Footer Navigation Bar */}
-        <footer className="px-4 py-3 border-t flex items-center justify-between border-inherit bg-inherit/90 backdrop-blur-xs shrink-0 relative z-20">
-          <button
-            onClick={handlePrevChapter}
-            disabled={currentChapterIndex === 0}
-            className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-              currentChapterIndex === 0
-                ? 'opacity-30 cursor-not-allowed'
-                : 'hover:bg-black/5 dark:hover:bg-white/10 active:scale-95'
-            }`}
-          >
-            <ChevronRight className="w-4 h-4" />
-            <span>فصل قبلی</span>
-          </button>
+        {/* Footer Navigation Bar (Hidden in Zen mode) */}
+        {!isZenMode && (
+          <footer className="px-4 py-3 border-t flex items-center justify-between border-inherit bg-inherit/90 backdrop-blur-xs shrink-0 relative z-20">
+            <button
+              onClick={handlePrevChapter}
+              disabled={currentChapterIndex === 0}
+              className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                currentChapterIndex === 0
+                  ? 'opacity-30 cursor-not-allowed'
+                  : 'hover:bg-black/5 dark:hover:bg-white/10 active:scale-95'
+              }`}
+            >
+              <ChevronRight className="w-4 h-4" />
+              <span>فصل قبلی</span>
+            </button>
 
-          {/* Center: Mark Completed or Done */}
-          <button
-            onClick={handleFinish}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs active:scale-95 transition-all"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>پایان و ثبت خوانده‌شده (+۵۰ XP)</span>
-          </button>
+            {/* Center: Mark Completed or Done */}
+            <button
+              onClick={handleFinish}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs active:scale-95 transition-all"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>پایان و ثبت خوانده‌شده (+۵۰ XP)</span>
+            </button>
 
-          <button
-            onClick={handleNextChapter}
-            disabled={currentChapterIndex >= chapters.length - 1}
-            className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-              currentChapterIndex >= chapters.length - 1
-                ? 'opacity-30 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-xs active:scale-95'
-            }`}
-          >
-            <span>فصل بعدی</span>
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-        </footer>
+            <button
+              onClick={handleNextChapter}
+              disabled={currentChapterIndex >= chapters.length - 1}
+              className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                currentChapterIndex >= chapters.length - 1
+                  ? 'opacity-30 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 shadow-xs active:scale-95'
+              }`}
+            >
+              <span>فصل بعدی</span>
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </footer>
+        )}
       </div>
     </div>
   );

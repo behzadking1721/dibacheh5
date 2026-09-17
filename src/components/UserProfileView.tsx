@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { UserStats, UserProfile, Book } from '../types';
+import { UserStats, UserProfile, Book, DailyReminderSettings } from '../types';
+import { UserAchievementsSection } from './UserAchievementsSection';
 import {
   User,
   Mail,
@@ -12,6 +13,7 @@ import {
   BookOpen,
   Trash2,
   Bell,
+  Clock,
   Wifi,
   Shield,
   CheckCircle2,
@@ -24,18 +26,26 @@ import {
 interface UserProfileViewProps {
   stats: UserStats;
   books: Book[];
+  notesCount?: number;
+  highlightsCount?: number;
   onOpenBook: (book: Book) => void;
   onRemoveDownloadedBook: (bookId: number) => void;
   onToggleWantToRead?: (bookId: number) => void;
+  dailyReminderSettings?: DailyReminderSettings;
+  onOpenDailyReminder?: () => void;
   isDarkMode: boolean;
 }
 
 export const UserProfileView: React.FC<UserProfileViewProps> = ({
   stats,
   books,
+  notesCount = 0,
+  highlightsCount = 0,
   onOpenBook,
   onRemoveDownloadedBook,
   onToggleWantToRead,
+  dailyReminderSettings,
+  onOpenDailyReminder,
   isDarkMode,
 }) => {
   const [profile, setProfile] = useState<UserProfile>(() => {
@@ -241,6 +251,15 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
         </div>
       </div>
 
+      {/* Honor Medals & Achievements Section */}
+      <UserAchievementsSection
+        stats={stats}
+        books={books}
+        notesCount={notesCount}
+        highlightsCount={highlightsCount}
+        isDarkMode={isDarkMode}
+      />
+
       {/* Want to Read Shelf Section (کتاب‌هایی که باید خوانده شود) */}
       <div
         className={`p-4 rounded-3xl border shadow-xs space-y-3 ${
@@ -423,26 +442,49 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
         </h4>
 
         <div className="space-y-3 divide-y divide-neutral-100 dark:divide-neutral-800 text-xs">
-          <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-neutral-400" />
-              <div>
-                <span className="font-semibold block">اعلان‌های یادآوری مطالعه روزانه</span>
-                <span className="text-[11px] text-neutral-400">ارسال یادآور برای حفظ زنجیره مطالعه</span>
+          <div className="pt-2 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bell className={`w-4 h-4 ${dailyReminderSettings?.enabled ? 'text-blue-500' : 'text-neutral-400'}`} />
+                <div>
+                  <span className="font-semibold block">اعلان‌های یادآوری مطالعه روزانه</span>
+                  <span className="text-[11px] text-neutral-400">
+                    {dailyReminderSettings?.enabled
+                      ? `یادآور فعال در ساعت ${dailyReminderSettings.time}`
+                      : 'ارسال یادآور خودکار برای ادامه کتاب و حفظ زنجیره'}
+                  </span>
+                </div>
               </div>
-            </div>
-            <button
-              onClick={handleToggleNotifications}
-              className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
-                profile.notificationsEnabled ? 'bg-blue-600' : 'bg-neutral-300 dark:bg-neutral-700'
-              }`}
-            >
-              <div
-                className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                  profile.notificationsEnabled ? '-translate-x-5' : 'translate-x-0'
+              <button
+                onClick={onOpenDailyReminder || handleToggleNotifications}
+                className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
+                  dailyReminderSettings?.enabled ? 'bg-blue-600' : 'bg-neutral-300 dark:bg-neutral-700'
                 }`}
-              />
-            </button>
+              >
+                <div
+                  className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                    dailyReminderSettings?.enabled ? '-translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {onOpenDailyReminder && (
+              <div className="flex items-center justify-between pl-1 text-[11px] text-neutral-500 pt-1">
+                <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-mono font-bold">
+                  <Clock className="w-3 h-3" />
+                  <span>زمان اعلان: {dailyReminderSettings?.time || '20:30'}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={onOpenDailyReminder}
+                  className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5"
+                >
+                  <span>تنظیم ساعت و تست</span>
+                  <ChevronLeft className="w-3 h-3" />
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between pt-3">

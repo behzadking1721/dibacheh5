@@ -99,6 +99,30 @@ export interface AdItem {
   active: boolean;
 }
 
+export interface DailyReminderSettings {
+  enabled: boolean;
+  time: string; // "HH:MM" in 24h format, e.g. "20:30"
+  soundEnabled: boolean;
+  lastNotifiedDate?: string; // YYYY-MM-DD
+  pushPermission: 'default' | 'granted' | 'denied';
+}
+
+export interface AchievementBadge {
+  id: string;
+  title: string;
+  category: 'habit' | 'reading' | 'note' | 'mastery';
+  description: string;
+  requirement: string;
+  icon: string;
+  color: string;
+  xpReward: number;
+  currentValue: number;
+  targetValue: number;
+  unit: string;
+  isUnlocked: boolean;
+  unlockedAt?: string;
+}
+
 export type TabType = 'home' | 'wantToRead' | 'favorites' | 'read' | 'notes' | 'offline' | 'profile' | 'admin';
 export type SortOption = 'title' | 'rating' | 'year' | 'popular';
 export type ReaderTheme = 'light' | 'sepia' | 'dark';
